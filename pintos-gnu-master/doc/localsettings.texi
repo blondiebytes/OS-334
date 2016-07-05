@@ -1,0 +1,129 @@
+@c Local settings
+
+@set localpintosbindir /opt/cs334/bin
+
+@set recommendvnc
+@set recommendgit
+@clear recommendcygwin
+@clear recommendcvs
+
+@macro localmachines{}
+The CS 334 ``officially supported'' Pintos development machines are
+those in SP-309 and the Asprey lab. 
+@end macro
+
+@macro localpathsetup{}
+You can do this by editing the @file{.bash_login} file in your home
+directory.  If this file does not exist you can create it. 
+@example
+emacs .bash_login
+@end example
+
+In this file add the following line: 
+
+@example
+PATH=/opt/cs334/bin:$PATH
+@end example
+
+If the @env{PATH} variable is already defined in your file you can
+just add @file{/opt/cs334/bin} to the begining of what is currently
+there.
+
+The changes will take effect the next time you log in.  If you don't
+want to log out and back in again you can type the following command
+to have the changes take place immediately.
+
+@example
+source .bash_login 
+@end example
+
+To test to if your @env{PATH} is set up correctly try running the
+@file{pintos} script.  If your path is set up correctly you'll see the
+@file{pintos} usage message.
+
+@example
+Linux$ pintos
+pintos, a utility for running Pintos in a simulator
+Usage: pintos [OPTION...] -- [ARGUMENT...]
+where each OPTION is one of the following options
+  and each ARGUMENT is passed to Pintos kernel verbatim.
+Simulator selection:
+  --bochs                  (default) Use Bochs as simulator
+  --qemu                   Use QEMU as simulator
+  --player                 Use VMware Player as simulator
+Debugger selection:
+  --no-debug               (default) No debugger
+  --monitor                Debug with simulator's monitor
+  --gdb                    Debug with gdb
+Display options: (default is both VGA and serial)
+  -v, --no-vga             No VGA display or keyboard
+  -s, --no-serial          No serial input or output
+  -t, --terminal           Display VGA in terminal (Bochs only)
+Timing options: (Bochs only)
+  -j SEED                  Randomize timer interrupts
+  -r, --realtime           Use realistic, not reproducible, timings
+Testing options:
+  -T, --timeout=N          Kill Pintos after N seconds CPU time or N*load_avg
+                           seconds wall-clock time (whichever comes first)
+  -k, --kill-on-failure    Kill Pintos a few seconds after a kernel or user
+                           panic, test failure, or triple fault
+Configuration options:
+  -m, --mem=N              Give Pintos N MB physical RAM (default: 4)
+File system commands:
+  -p, --put-file=HOSTFN    Copy HOSTFN into VM, by default under same name
+  -g, --get-file=GUESTFN   Copy GUESTFN out of VM, by default under same name
+  -a, --as=FILENAME        Specifies guest (for -p) or host (for -g) file name
+Partition options: (where PARTITION is one of: kernel filesys scratch swap)
+  --PARTITION=FILE         Use a copy of FILE for the given PARTITION
+  --PARTITION-size=SIZE    Create an empty PARTITION of the given SIZE in MB
+  --PARTITION-from=DISK    Use of a copy of the given PARTITION in DISK
+  (There is no --kernel-size, --scratch, or --scratch-from option.)
+Disk configuration options:
+  --make-disk=DISK         Name the new DISK and don't delete it after the run
+  --disk=DISK              Also use existing DISK (may be used multiple times)
+Advanced disk configuration options:
+  --loader=FILE            Use FILE as bootstrap loader (default: loader.bin)
+  --geometry=H,S           Use H head, S sector geometry (default: 16,63)
+  --geometry=zip           Use 64 head, 32 sector geometry for USB-ZIP boot
+                           (see http://syslinux.zytor.com/usbkey.php)
+  --align=bochs            Pad out disk to cylinder to support Bochs (default)
+  --align=full             Align partition boundaries to cylinder boundary to
+                           let fdisk guess correct geometry and quiet warnings
+  --align=none             Don't align partitions at all, to save space
+Other options:
+  -h, --help               Display this help message.
+@end example
+@end macro
+
+@macro localcrossbuild{}
+@end macro
+
+@macro localhonorcodepolicy{}
+In the context of Vassar's CS 334 course, please respect the spirit
+and the letter of the honor code by refraining from reading any homework
+solutions available online or elsewhere.  Reading the source code for
+other operating system kernels, such as Linux or FreeBSD, is allowed,
+but do not copy code from them literally.  Please cite the code that
+inspired your own in your design documentation.
+@end macro
+
+@macro localcredits{}
+@c none needed
+@end macro
+
+@macro localcvspolicy{}
+Instead, we recommend integrating your team's changes early and often,
+using a source code control system such as Git (@pxref{Git}).
+This is less likely to produce surprises, because everyone can see
+everyone else's code as it is written, instead of just when it is
+finished.  These systems also make it possible to review changes and,
+when a change introduces a bug, drop back to working versions of code.
+@end macro
+
+@macro localcodingstandards{}
+@c If appropriate, describe additional local coding standards here.
+@end macro
+
+@macro localdevelopmenttools{}
+@c Descriptions of additional, local development tools can be inserted here
+@end macro

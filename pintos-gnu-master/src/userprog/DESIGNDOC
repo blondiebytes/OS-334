@@ -1,0 +1,159 @@
+
+                         +-----------------+
+                         |      CS 334     |
+                         |  USER PROGRAMS  |
+                         | DESIGN DOCUMENT |
+                         +-----------------+
+
+---- GROUP ----
+
+Gnu:
+Kevin Cosgrove <kecosgrove@vassar.edu>
+Kathryn Hodge <kahodge@vassar.edu>
+Atticus Kramer <atkramer@vassar.edu>
+
+---- PRELIMINARIES ----
+
+No external sources.
+
+                                 USER PROGRAMS
+                                 =============
+
+---- DATA STRUCTURES ----
+
+Added to thread.h:
+
+  struct remains /* Holds the tid and status of an exited thread, as well as 
+  	 	    a list elem */
+
+  struct file_fd /* holds an int for the file descriptor as well as a pointer to
+    	      	    the file struct associated with that fd and a list elem */
+
+Added to the thread struct in thread.h:
+
+  tid_t parent_tid /* A thread id for each user program indicating the thread's
+      		      parent, to ensure parent's can only wait on their 
+		      own children */
+  
+  struct semaphore sema_terminate /* A semaphore that the thread's parent waits
+  	 	   		     on when waiting for the thread to 
+				     terminate */
+
+  struct file *executable /* The file of the thread running as an executable.
+  	      		     Kept open to ensure writes are denied */
+
+  struct semaphore exec_sema /* Semaphore a thread waits on when creating a 
+  	 	   	     	child to ensure that the child loads 
+				successfully */
+
+  struct list child_remains /* A list of all the tids and statuses of children
+  	      		       of this thread that have exited already */
+
+  struct list open_files /* A list of all the file descriptors and relevant 
+  	      		    information for all files this thread has open */
+
+Added to thread.c:
+
+  struct lock fs_lock /* Lock used to ensure only one thread accesses file 
+  	      	      	 system code at once */
+
+---- ALGORITHMS ----
+
+PROCESS_WAIT
+============
+Each thread has a list of tids and statuses of its children that have already
+terminated.  When a process waits on a child, it first searches the list of
+active threads. If the child is not found in this list, it searches it's own
+list of terminated children. If the thread is not found in either list, or if
+the thread is found in the active thread list but is not the child of the
+caller, returns -1 immediately. If the thread is found in the active thread
+list, the parent waits on the child's semaphore. When the child terminates, it
+will place a remains struct in the parent's list of remains and then up the
+semaphore right before it terminates. The parent will then retrieve the remains
+from it's remains list and return the exit status provided in the remains
+struct.
+
+FILE SYSTEM
+===========
+Each thread keeps a list of its open files and their file descriptors.
+file_fd's are added to this list by the open system call, and removed either
+by the close system call, or automatically when exiting the thread.
+
+ARGUMENT CHECKING
+=================
+We used the function check_ptr to check user pointers. This function will
+terminate the process with exit code -1 if a user pointer is null, is pointing
+to an invalid page or is pointing to kernel memory.
+
+---- SYNCHRONIZATION ----
+
+PROCESS WAIT
+============
+When a parent (p) calls process_wait on a child (c), it downs the c's 
+sema_terminate semaphore.  Each thread ups its own sema_terminate upon 
+exiting, after adding its remains to its parent's child_remains list.  Once 
+p is woken up by the c upping its semaphore upon exit (or if it never blocks, 
+because c exited before being waited on), c's exit status can be obtained from 
+the list of child_remains or found to be -1 if not in the list, indicating c
+exited in some other way than calling exit (i.e. encountered an error that 
+terminated it).
+
+SYS_EXEC
+====
+When a thread (p) calls exec to create a child thread (c), it must ensure that 
+the child has successfully loaded before returning.  To ensure this, p downs 
+its own exec_sema semaphore after calling process_execute.  c only ups this
+semaphore after checking that the provided program was loaded successfully.
+
+---- RATIONALE ----
+
+PROCESS_WAIT
+============
+The process_wait system call needs to retrieve an exit status from an already
+terminated child process. This means that when a process terminates, it must
+store it's exit status and associated pid somewhere where the parent process
+can retrieve it. Because a thread is deallocated when it terminates, this
+information cannot be stored in the child. It therefore must be stored in the
+parent. Creating the remains struct allowed us to deallocate the rest of the
+child process and keep only those components which the parent process needs
+to successfully return the exit status. Because a parent process may have any
+number of children, we needed to put these remains in a list.
+
+FILE SYSTEM
+===========
+A process can only read and write to files which that thread has previously
+opened and has a file descriptor for. It is therefore necessary for each
+process to track what files it has open. To this end, each thread maintains a
+list of file_fd structs which contain the information necessary to read and
+write to a file. Closing any file removes the associated file_fd from the list
+of file_fd structs.
+
+Furthermore, all system calls which involve access to the file system require
+synchronization because each file access is a critical section vulnerable to
+interference by other processes which may have the same file open. This is the
+purpose of the fs_lock in syscall.c. Unfortunately, this lock means that access
+to different files within the file system cannot occur simultaneously. However
+the alternative, having one lock per a file, seemed excessive.
+
+SYSCALL_HANDLER
+===============
+The syscall handler uses a switch statement to determine which system call code
+to execute. Alternatively, the syscall handler could have created an array of
+syscall functions. However, this implementation would have not entirely
+eliminated the need for some kind of conditional because different syscall
+functions require different inputs and may or may not return a value. For this
+reason, the benefits of an array implementation over a switch statement did not
+seem worthwhile.
+
+SYS_EXEC
+========
+Sys_exec is supposed to return the child's pid if the child loads successfully,
+and -1 if it does not. However, we cannot make assumptions about the order in
+which the child and parent processes execute. For this reason, we need a
+synchronization primitive to hold the parent from returning from sys_exec until
+we know whether or not the child was able to load. This is the purpose of the
+exec_sema semaphore in the thread struct. The child_successful field in the
+thread struct gives the child a way of signalling to the parent if it is
+successful. Because a parent cannot return from sys_exec until the child sets
+this value, there is no need for a list of these child_successful booleans.
+The process can only exec one child at a time.
